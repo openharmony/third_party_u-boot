@@ -35,6 +35,8 @@
 #ifdef CONFIG_AUTO_OTA_UPDATE
 #include <fat.h>
 #endif /* CONFIG_AUTO_OTA_UPDATE */
+#include <env.h>
+#include <string.h>
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
@@ -258,9 +260,6 @@ int save_bootdata_to_flash(void)
 	return 0;
 }
 
-int auto_update_flag = 0;
-int bare_chip_program = 0;
-
 #define REG_BASE_GPIO0          0x120d0000
 #define GPIO0_0_DATA_OFST       0x4
 #define GPIO_DIR_OFST           0x400
@@ -376,25 +375,168 @@ int is_auto_update(void)
 #endif
 }
 
+#define EMMC_SECTOR_SIZE (1<<9)
+#define M_1 (1024*1024)
+#define MISC_LOCATION 36
+#define MAX_COMMAND_SIZE 20
+#define MAX_UPDATE_SIZE 100
+struct UpdateMessage {
+    char command[MAX_COMMAND_SIZE];
+    char update[MAX_UPDATE_SIZE];
+};
+
+static struct mmc *mmc;
+struct mmc *MmcBlkDevInit(int dev)
+{
+    struct mmc *mmcDev;
+
+    mmcDev = find_mmc_device(dev);
+    if (!mmcDev) {
+        printf("no mmc device at slot %x\n", dev);
+        return NULL;
+    }
+
+    if (mmc_init(mmcDev)) {
+        return NULL;
+    }
+    return mmcDev;
+}
+
+static int MmcBlkRead(const struct mmc *mmcDev, char *buffer, u32 blk, u32 cnt)
+{
+    ulong start = (ulong)buffer;
+
+    debug("\nMMC read: block # 0x%x, count 0x%x  to %p... ", blk, cnt, buffer);
+
+    u32 n = blk_dread(mmc_get_blk_desc(mmcDev), blk, cnt, buffer);
+    /* invalidate cache after read via dma */
+    invalidate_dcache_range(start, start + cnt * EMMC_SECTOR_SIZE);
+    debug("%d blocks read: %s\n", n, (n == cnt) ? "OK" : "ERROR");
+    printf("@@@ %d blocks read: %s\n", n, (n == cnt) ? "OK" : "ERROR");
+
+    return (n == cnt) ? 0 : -EIO;
+}
+
+#define NUM_BASE 10
+int BlkDevRead(char *buffer, u32 blk, u32 cnt)
+{
+    if (!mmc) {
+        int devNo = env_get_ulong("mmcdev", NUM_BASE, 0);
+        mmc = MmcBlkDevInit(devNo);
+        if (!mmc) {
+            return -ENODEV;
+        }
+    }
+    return MmcBlkRead(mmc, buffer, blk, cnt);
+}
+
+static int g_isRecovery = 0;
+#define EMMC_SECTOR_CNT 5
+#define ARG_SZ 1000
+#define MMC_LENGTH 7
+#define UPDATE_BOOT_LENGTH 12
+#define MIN_BOOTARGS_LENGTH 100
+
+char g_bootArgsStr[ARG_SZ];
+
+static void ChangeBootArgs()            // get bootargs from emmc
+{
+    char *emmcBootArgs = env_get("bootargs");
+    if (!emmcBootArgs) {
+        printf("@@@ bootArgs from emmc is bad = NULL\n");
+        return;
+    }
+    int emmcBootArgsLen = strlen(emmcBootArgs);
+    if (emmcBootArgsLen < MIN_BOOTARGS_LENGTH) {
+        printf("@@@ bootArgs from emmc is bad = %s, len=%d\n", emmcBootArgs, emmcBootArgsLen);
+        return;
+    }
+    char *initIndex = strstr(emmcBootArgs, "init");
+    char *blkIndex = strstr(emmcBootArgs, "blkdevparts");
+    if (!initIndex || !blkIndex) {       // error
+        printf("@@@ bootArgs from emmc is bad = %s\n", emmcBootArgs);
+        return;
+    }
+
+    if (!g_isRecovery) {                 // hos
+        memset(g_bootArgsStr, 0, ARG_SZ);
+        memcpy(g_bootArgsStr, emmcBootArgs, emmcBootArgsLen);
+        printf("@@@ bootArgs final from emmc = %s\n", g_bootArgsStr);
+    } else {
+        printf("@@@ bootArgs final from misc = %s\n", g_bootArgsStr);
+    }
+}
+
+static int EmmcInitParam()              // get "boot_updater" string in misc,then set env
+{
+    const char rebootHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 init=/init "
+        "root=/dev/mmcblk0p5 rootfstype=ext4 rw blkdevparts=";
+    const char defaultRebootStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 init=/init root=/dev/mmcblk0p5 "
+        "rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
+        "1M(misc),3307M(system),256M(vendor),-(userdata)";
+    const char updaterHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M clk_ignore_unused "
+        "androidboot.selinux=permissive skip_initramfs "
+        "rootdelay=10 init=/updaterinit root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=";
+    const char defaultUpdaterStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs "
+        "rootdelay=10 init=/updaterinit root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),"
+        "15M(kernel),20M(updater),1M(misc),3307M(system),256M(vendor),-(userdata)";
+    char block2[EMMC_SECTOR_SIZE*EMMC_SECTOR_CNT];
+    if (BlkDevRead(block2, MISC_LOCATION*(M_1/EMMC_SECTOR_SIZE), EMMC_SECTOR_CNT) < 0) {
+        return -1;
+    }
+
+    struct UpdateMessage *p = (struct UpdateMessage *)block2;
+    block2[MAX_COMMAND_SIZE - 1] = block2[MAX_COMMAND_SIZE + MAX_UPDATE_SIZE - 1] =
+        block2[EMMC_SECTOR_SIZE * EMMC_SECTOR_CNT - 1] = 0;
+    p->command[0] = p->command[0] == ((char)-1) ? 0 : p->command[0];
+    p->update[0] = p->update[0] == ((char)-1) ? 0 : p->update[0];
+    block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)] = block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)] ==
+        (char)-1 ? 0 : block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)];
+
+    g_isRecovery = memcmp(p->command, "boot_updater", UPDATE_BOOT_LENGTH) ? 0 : 1;
+    unsigned int partStrLen = strlen(&block2[EMMC_SECTOR_SIZE*(EMMC_SECTOR_CNT - 1)]);
+
+    if (memcmp(&block2[EMMC_SECTOR_SIZE*(EMMC_SECTOR_CNT-1)], "mmcblk0", MMC_LENGTH)) {
+        if (g_isRecovery) {
+            memcpy(g_bootArgsStr, defaultUpdaterStr, strlen(defaultUpdaterStr) + 1);
+        } else {
+            memcpy(g_bootArgsStr, defaultRebootStr, strlen(defaultRebootStr) + 1);
+        }
+    } else {
+        if (g_isRecovery) {
+            memcpy(g_bootArgsStr, updaterHead, strlen(updaterHead) + 1);
+        } else {
+            memcpy(g_bootArgsStr, rebootHead, strlen(rebootHead) + 1);
+        }
+        memcpy(g_bootArgsStr + strlen(g_bootArgsStr), &block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)],
+            partStrLen + 1);
+    }
+    printf("@@@ g_isRecovery = %d\n", g_isRecovery);
+    printf("@@@ bootArgs from misc       = %s\n", g_bootArgsStr);
+
+    return g_isRecovery;
+}
+
 int misc_init_r(void)
 {
+    const char cmdBuf[] = "mmc read 0x0 0x80000000 0x800 0x4800; bootm 0x80000000";
+
 #ifdef CONFIG_RANDOM_ETHADDR
 	random_init_r();
 #endif
 	env_set("verify", "n");
 
 #if (CONFIG_AUTO_UPDATE == 1)
-	/* auto update flag */
-	if (is_auto_update())
-		auto_update_flag = 1;
-	else
-		auto_update_flag = 0;
+    if (EmmcInitParam() == -1) {
+        return 0;
+    }
+    ChangeBootArgs();
 
-	/* bare chip program flag */
-	if (is_bare_program())
-		bare_chip_program = 1;
-	else
-		bare_chip_program = 0;
+    env_set("bootargs", g_bootArgsStr);
+    env_set("bootcmd", cmdBuf);
 
 #ifdef CFG_MMU_HANDLEOK
 	dcache_stop();
@@ -407,15 +549,8 @@ int misc_init_r(void)
 #endif
 
 #if (CONFIG_AUTO_UPDATE == 1)
-	int update_flag = -1;
-	if (auto_update_flag)
-		update_flag = do_auto_update();
-	if (bare_chip_program && !auto_update_flag)
-		save_bootdata_to_flash();
-	if (update_flag == 0)
-		do_reset(NULL, 0, 0, NULL);
 #endif
-	return 0;
+    return 0;
 }
 
 int board_init(void)
