@@ -32,7 +32,8 @@
 
 #define PACKAGE_HEADER_FILE             "infocomp.bin"
 
-#define SIGN_DATA_LEN                   256
+#define SIGN_DATA_LEN                   640
+#define SIGN_RSA2048_LEN                256
 #define BASIC_VERSION_OFFSET            76
 #define VERSION_LEN                     64
 #define COMPONENT_INFO_START            176
@@ -255,7 +256,7 @@ static int verify_package_sign(const unsigned char *info_buf,
 {
 	int ret;
 	unsigned int header_len;
-	unsigned char sign[SIGN_DATA_LEN];
+	unsigned char sign[SIGN_RSA2048_LEN];
 	unsigned char *info_header = NULL;
 
 	if (info_len <= SIGN_DATA_LEN || info_len >  2 * 1024 * 1024) {
@@ -264,7 +265,7 @@ static int verify_package_sign(const unsigned char *info_buf,
 	}
 
 	header_len = info_len - SIGN_DATA_LEN;
-	memcpy(sign, info_buf + header_len, SIGN_DATA_LEN);
+	memcpy(sign, info_buf + header_len, SIGN_RSA2048_LEN);
 	info_header = malloc(header_len);
 	if (!info_header) {
 		UPD_LOGE("malloc fail");
