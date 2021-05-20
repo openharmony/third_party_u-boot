@@ -1093,6 +1093,9 @@ static int update_to_flash(void)
 		cnt = 0;
 		do {
 			res = au_do_update(i, (unsigned long)sz);
+            if (!res) {
+                printf("%s write success!\n", aufile[i]);
+            }
 #ifdef CONFIG_AUTO_OTA_UPDATE
 			if (g_is_ota)
 				break;
@@ -1108,10 +1111,12 @@ static int update_to_flash(void)
 		} while (res < 0);
 	}
 
-	if (uboot_updated == 1)
+	if (uboot_updated == 1) {
+        printf("update success!\n");
 		return 1;
-	else
-		return -1;
+    }
+    
+    return -1;
 }
 #else
 void get_sparse_header(int file_idx, struct seg_update_parm *update_parm)
