@@ -435,7 +435,9 @@ static int g_isRecovery = 0;
 #define ARG_SZ 1000
 #define MMC_LENGTH 7
 #define UPDATE_BOOT_LENGTH 12
-#define MIN_BOOTARGS_LENGTH 100
+#define MIN_BOOTARGS_LENGTH 10
+#define PARTITION_INFO_POS 1144
+#define PARTITION_INFO_MAX_LENGTH 256
 
 char g_bootArgsStr[ARG_SZ];
 
@@ -451,13 +453,6 @@ static void ChangeBootArgs()            // get bootargs from emmc
         printf("@@@ bootArgs from emmc is bad = %s, len=%d\n", emmcBootArgs, emmcBootArgsLen);
         return;
     }
-    char *initIndex = strstr(emmcBootArgs, "init");
-    char *blkIndex = strstr(emmcBootArgs, "blkdevparts");
-    if (!initIndex || !blkIndex) {       // error
-        printf("@@@ bootArgs from emmc is bad = %s\n", emmcBootArgs);
-        return;
-    }
-
     if (!g_isRecovery) {                 // hos
         memset(g_bootArgsStr, 0, ARG_SZ);
         memcpy(g_bootArgsStr, emmcBootArgs, emmcBootArgsLen);
@@ -493,13 +488,13 @@ static int EmmcInitParam()              // get "boot_updater" string in misc,the
         block2[EMMC_SECTOR_SIZE * EMMC_SECTOR_CNT - 1] = 0;
     p->command[0] = p->command[0] == ((char)-1) ? 0 : p->command[0];
     p->update[0] = p->update[0] == ((char)-1) ? 0 : p->update[0];
-    block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)] = block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)] ==
-        (char)-1 ? 0 : block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)];
+    block2[PARTITION_INFO_POS] = block2[PARTITION_INFO_POS] == (char)-1 ? 0 : block2[PARTITION_INFO_POS];
+    block2[PARTITION_INFO_POS + PARTITION_INFO_MAX_LENGTH] = 0;
 
     g_isRecovery = memcmp(p->command, "boot_updater", UPDATE_BOOT_LENGTH) ? 0 : 1;
-    unsigned int partStrLen = strlen(&block2[EMMC_SECTOR_SIZE*(EMMC_SECTOR_CNT - 1)]);
+    unsigned int partitionStrLen = strlen(&block2[PARTITION_INFO_POS]);
 
-    if (memcmp(&block2[EMMC_SECTOR_SIZE*(EMMC_SECTOR_CNT-1)], "mmcblk0", MMC_LENGTH)) {
+    if (memcmp(&block2[PARTITION_INFO_POS], "mmcblk0", MMC_LENGTH)) {
         if (g_isRecovery) {
             memcpy(g_bootArgsStr, defaultUpdaterStr, strlen(defaultUpdaterStr) + 1);
         } else {
@@ -511,8 +506,7 @@ static int EmmcInitParam()              // get "boot_updater" string in misc,the
         } else {
             memcpy(g_bootArgsStr, rebootHead, strlen(rebootHead) + 1);
         }
-        memcpy(g_bootArgsStr + strlen(g_bootArgsStr), &block2[EMMC_SECTOR_SIZE * (EMMC_SECTOR_CNT - 1)],
-            partStrLen + 1);
+        memcpy(g_bootArgsStr + strlen(g_bootArgsStr), &block2[PARTITION_INFO_POS], partitionStrLen + 1);
     }
     printf("@@@ g_isRecovery = %d\n", g_isRecovery);
     printf("@@@ bootArgs from misc       = %s\n", g_bootArgsStr);
