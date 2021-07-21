@@ -466,10 +466,10 @@ static int EmmcInitParam()              // get "boot_updater" string in misc,the
 {
     const char rebootHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
         "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 init=/init "
-        "root=/dev/mmcblk0p5 rootfstype=ext4 rw blkdevparts=";
+        "root=/dev/mmcblk0p5 rootfstype=ext4 ro blkdevparts=";
     const char defaultRebootStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
         "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 init=/init root=/dev/mmcblk0p5 "
-        "rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
+        "rootfstype=ext4 ro blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
         "1M(misc),3307M(system),256M(vendor),-(userdata)";
     const char updaterHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M clk_ignore_unused "
         "androidboot.selinux=permissive skip_initramfs "
