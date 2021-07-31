@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2021 Huawei Device Co., Ltd.
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+
+    This is the configuration file template for OpenHarmony OSS Audit Tool, please copy it to your project root dir and modify it refer to OpenHarmony/tools_oat/README.
+
+-->
+
+<configuration>
+    <oatconfig>
+        <licensefile>u-boot-2020.01/Licenses/gpl-2.0.txt</licensefile>
+        <policylist>
+            <policy name="projectPolicy" desc="">
+                <policyitem type="compatibility" name="GPL" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="bzip2 and libbzip2 License" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="eCos-2.0" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="OFL-1.1-no-RFN" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="PublicDomainLicense" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="Unicode-DFS-2016" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="X11" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="zlib-acknowledgement" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <policyitem type="compatibility" name="Intel" path=".*" desc="Process that runs independently, invoked by the X process."/>
+				<policyitem type="compatibility" name="BEER-WARE" path=".*" desc="Process that runs independently, invoked by the X process."/>
+				<policyitem type="compatibility" name="ISC" path=".*" desc="Process that runs independently, invoked by the X process."/>
+				<policyitem type="compatibility" name="SPDX License Expression" path=".*" desc="Process that runs independently, invoked by the X process."/>
+                <!--policyitem type="license" name="LGPL" path="abc/.*" desc="Dynamically linked by module X"/-->
+                <!--policyitem type="copyright" name="xxx" path="abc/.*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc="Developed by X Company"/-->
+            </policy>
+        </policylist>
+        <filefilterlist>
+            <filefilter name="defaultFilter" desc="Files not to check">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+            </filefilter>
+            <filefilter name="defaultPolicyFilter" desc="Filters for compatibility，license header policies">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+				<filteritem type="filepath" name="u-boot-2020.01/doc/README.coccinelle" desc="Temp files"/>
+				<filteritem type="filepath" name="u-boot-2020.01/drivers/i2c/omap24xx_i2c.c" desc="Temp files"/>
+				<filteritem type="filepath" name="u-boot-2020.01/net/nfs.c" desc="Temp files"/>
+				<filteritem type="filepath" name="u-boot-2020.01/Licenses/Exceptions" desc="Temp files"/>
+				<filteritem type="filepath" name="u-boot-2020.01/doc/README.rmobile" desc="Temp files"/>
+				<filteritem type="filepath" name="u-boot-2020.01/test/run" desc="Temp files"/>
+				<filteritem type="filepath" name="u-boot-2020.01/arch/arm/cpu/armv8/fsl-layerscape/doc/README.soc" desc="Temp files"/>
+				<filteritem type="filename" name="*.txt" desc="Temp files"/>
+            </filefilter>
+            <filefilter name="copyrightPolicyFilter" desc="Filters for copyright header policies">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+            </filefilter>
+            <filefilter name="licenseFileNamePolicyFilter" desc="Filters for LICENSE file policies">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+            </filefilter>
+            <filefilter name="readmeFileNamePolicyFilter" desc="Filters for README file policies">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+            </filefilter>
+            <filefilter name="readmeOpenSourcefileNamePolicyFilter" desc="Filters for README.OpenSource file policies">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+            </filefilter>
+            <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binary file policies">
+                <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
+                <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+            </filefilter>
+
+        </filefilterlist>
+        <licensematcherlist>
+            <licensematcher name="GPL-2.0+" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+                    (See License)
+				 " desc=""/>
+				 <licensetext name="
+                     * SDPX-License-Identifier:     GPL-2.0+
+				 " desc=""/>
+
+            </licensematcher>
+            <licensematcher name="X11" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+			 * Permission to use, copy, modify, distribute, and sell this software and its
+			 * documentation for any purpose is hereby granted without fee, provided that
+			 * the above copyright notice appear in all copies and that both that copyright
+			 * notice and this permission notice appear in supporting documentation, and
+			 * that the name of the copyright holders not be used in advertising or
+			 * publicity pertaining to distribution of the software without specific,
+			 * written prior permission.  The copyright holders make no representations
+			 * about the suitability of this software for any purpose. 
+				 " desc=""/>
+				 <licensetext name="
+				 *  Permission to use, copy, modify, distribute, and sell this software and
+				*  its documentation for any purpose is hereby granted without fee,
+				*  provided that the above copyright notice appear in all copies and that
+				*  both that copyright notice and this permission notice appear in
+				*  supporting documentation, and that the name of the authors not be used
+				*  in advertising or publicity pertaining to distribution of the software
+				*  without specific, written prior permission.  The authors makes no
+				*  representations about the suitability of this software for any purpose.
+				" desc=""/>
+            </licensematcher>	
+			
+			<licensematcher name="zlib-acknowledgement" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+					For conditions of distribution and use, see copyright notice in zlib.h
+				 " desc=""/>
+
+				 <licensetext name="
+				  * This file is derived from various .h and .c files from the zlib-1.2.3
+				 " desc=""/>
+
+            </licensematcher>		
+
+			<licensematcher name="BSD Style License" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+			1. Redistribution in binary form must reproduce the above copyright notice,
+			   this list of conditions and the following disclaimer in the documentation
+			   and/or other materials provided with the distribution.
+			2. The name of Renesas Electronics Corporation may not be used to endorse or
+			   promote products derived from this software without specific prior written
+			   permission.
+			3. Reverse engineering, decompilation, or disassembly of this software is
+			   not permitted.
+				 " desc=""/>
+				 
+				 <licensetext name="
+					* Redistribution and use in source and binary forms are freely
+					 * permitted provided that the above copyright notice and this
+					 * paragraph and the following disclaimer are duplicated in all
+					 * such forms.
+				" desc=""/>
+ 
+            </licensematcher>
+
+			<licensematcher name="Intel" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+			 * Redistribution. Redistribution and use in binary form, without modification, are
+			 * permitted provided that the following conditions are met:
+			 *      .Redistributions must reproduce the above copyright notice and the following
+			 * disclaimer in the documentation and/or other materials provided with the
+			 * distribution.
+			 *      .Neither the name of Intel Corporation nor the names of its suppliers may be used
+			 * to endorse or promote products derived from this software without specific prior
+			 * written permission.
+			 *      .No reverse engineering, decompilation, or disassembly of this software is
+			 * permitted.			
+				 " desc=""/>
+            </licensematcher>
+			
+			<licensematcher name="BEER-WARE" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+			 * THE BEER-WARE LICENSE
+				 " desc=""/>
+            </licensematcher>
+
+			<licensematcher name="PublicDomainLicense" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+				* This source code is offered for use in the public domain. You may
+				* use, modify or distribute it freely.
+
+				 " desc=""/>
+            </licensematcher>
+			 
+        </licensematcherlist>
+    </oatconfig>
+</configuration>
