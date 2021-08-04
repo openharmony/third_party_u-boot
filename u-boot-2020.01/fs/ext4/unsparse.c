@@ -4,16 +4,19 @@
 #include <mmc.h>
 #include <image-sparse.h>
 
-/******************************************************************************/
+#define FILLBUF_SIZE               4096
+
+#define EMMC_BLKSIZE_SHIFT         9
+#define SZ_1M_SHIFT                20
+#define FILLBUF_NUM_MMC_BLKS       FILLBUF_SIZE >> EMMC_BLKSIZE_SHIFT
+
 #ifdef CONFIG_CMD_UFS
 #include <ufs.h>
-#define UFS_BLKSIZE_SHIFT  (12)
+#define UFS_BLKSIZE_SHIFT          12
+#define FILLBUF_NUM_UFS_BLKS       FILLBUF_SIZE >> UFS_BLKSIZE_SHIFT
 #endif
 
-#define EMMC_BLKSIZE_SHIFT           (9)
-#define SZ_1M_SHIFT                  (20)
-
-/* #define DEBUG_EXT4 */
+/* Open it as you need #define DEBUG_EXT4 */
 
 /******************************************************************************/
 void print_header_info(sparse_header_t *header)
@@ -43,15 +46,17 @@ void print_chunk_info(chunk_header_t *chunk)
 #endif
 }
 
-int get_unspare_header_info(const u8 *pbuf,sparse_header_t *sparse_header)
+int get_unspare_header_info(const u8 *pbuf,sparse_header_t *sparse_header,
+		char* is_sparse)
 {
 	sparse_header_t *header = NULL;
 	header = memcpy(sparse_header, pbuf,sizeof(sparse_header_t));
 
 	if (!is_sparse_image(sparse_header)) {
-		printf("Invalid sparse format.\n");
-		return 1;
+		*is_sparse = 0;
+		return 0;
 	}
+	*is_sparse = 1;
 	print_header_info(header);
 	return 0;
 
@@ -68,6 +73,7 @@ int ext4_unsparse(struct mmc *mmc, u32 dev, u8 *pbuf, u32 blk, u32 cnt)
 	s32 percent_complete = -1;
 	chunk_header_t *chunk = NULL;
 	sparse_header_t *header = (sparse_header_t *)pbuf;
+	uint32_t fill_buf[FILLBUF_SIZE / sizeof(uint32_t)];
 
 	if (!is_sparse_image(header)) {
 		printf("Invalid sparse format.\n");
@@ -164,6 +170,47 @@ int ext4_unsparse(struct mmc *mmc, u32 dev, u8 *pbuf, u32 blk, u32 cnt)
 			blk  += (chunk_len >> EMMC_BLKSIZE_SHIFT);
 			break;
 
+		case CHUNK_TYPE_FILL: {
+			uint32_t fill_val = *(uint32_t *)pbuf;
+			u32 blkcnt, blk_writed, j;
+
+			pbuf = (u8 *)pbuf + sizeof(uint32_t);
+
+			if (chunk->total_sz != (header->chunk_hdr_sz + sizeof(uint32_t))) {
+				print_chunk_info(chunk);
+				printf("Bogus chunk size for chunk type FILL");
+				return 1;
+			}
+
+
+			for (j = 0; j < FILLBUF_SIZE / sizeof(uint32_t); j++)
+				fill_buf[j] = fill_val;
+
+			chunk_len = chunk->chunk_sz * header->blk_sz;
+			blkcnt = chunk_len >> EMMC_BLKSIZE_SHIFT;
+			if (blk + blkcnt > blk + cnt) {
+				print_chunk_info(chunk);
+				printf(
+				    "%s: Request would exceed partition size!\n",
+				    __func__);
+				return 1;
+			}
+
+			for (blk_writed = 0; blk_writed < blkcnt;) {
+				unsigned int write_blks = FILLBUF_NUM_MMC_BLKS < blkcnt - blk_writed ? blkcnt - blk_writed : FILLBUF_NUM_MMC_BLKS;
+				num = blk_dwrite(mmc_get_blk_desc(mmc), blk,
+						write_blks, fill_buf);
+				if (num != write_blks) {
+					print_chunk_info(chunk);
+					printf("Raw data: No.%d blocks written: %s.\n", num, "ERROR");
+					return 1;
+				}
+				blk_writed += write_blks;
+				blk  += write_blks;
+			}
+			sparse_len += chunk_len;
+			break;
+		}
 		default:
 			printf("sparse: unknow chunk type %04x.\n",
 			       chunk->chunk_type);
@@ -214,6 +261,7 @@ int ufs_ext4_unsparse(const u8 *pbuf, u32 blk, u32 cnt)
 	s32 percent_complete = -1;
 	chunk_header_t *chunk = NULL;
 	sparse_header_t *header = (sparse_header_t *)pbuf;
+	uint32_t fill_buf[FILLBUF_SIZE / sizeof(uint32_t)];
 
 	if (!is_sparse_image(header)) {
 		printf("Invalid sparse format.\n");
@@ -314,7 +362,48 @@ int ufs_ext4_unsparse(const u8 *pbuf, u32 blk, u32 cnt)
 
 			blk  += (chunk_len >> UFS_BLKSIZE_SHIFT);
 			break;
+		case CHUNK_TYPE_FILL: {
+			uint32_t *fill_buf = NULL;
+			uint32_t fill_val = *(uint32_t *)pbuf;
+			u32 blkcnt, blk_writed, j;
 
+			pbuf = (u8 *)pbuf + sizeof(uint32_t);
+
+			if (chunk->total_sz != (header->chunk_hdr_sz + sizeof(uint32_t))) {
+				print_chunk_info(chunk);
+				printf("Bogus chunk size for chunk type FILL");
+				return 1;
+			}
+
+
+			for (j = 0; j < FILLBUF_SIZE / sizeof(uint32_t); j++)
+				fill_buf[j] = fill_val;
+
+			chunk_len = chunk->chunk_sz * header->blk_sz;
+			blkcnt = chunk_len >> EMMC_BLKSIZE_SHIFT;
+			if (blk + blkcnt > blk + cnt) {
+				print_chunk_info(chunk);
+				printf(
+				    "%s: Request would exceed partition size!\n",
+				    __func__);
+				return 1;
+			}
+
+			for (blk_writed = 0; blk_writed < blkcnt;) {
+				unsigned int write_blks = FILLBUF_NUM_MMC_BLKS < blkcnt - blk_writed ? blkcnt - blk_writed : FILLBUF_NUM_MMC_BLKS;
+				num = blk_dwrite(mmc_get_blk_desc(mmc), blk,
+						write_blks, fill_buf);
+				if (num != write_blks) {
+					print_chunk_info(chunk);
+					printf("Raw data: No.%d blocks written: %s.\n", num, "ERROR");
+					return 1;
+				}
+				blk_writed += write_blks;
+				blk  += write_blks;
+			}
+			sparse_len += chunk_len;
+			break;
+		}
 		default:
 			printf("sparse: unknown chunk type %04x.\n",
 			       chunk->chunk_type);
