@@ -260,6 +260,9 @@ int save_bootdata_to_flash(void)
 	return 0;
 }
 
+int auto_update_flag = 0;
+int bare_chip_program = 0;
+
 #define REG_BASE_GPIO0          0x120d0000
 #define GPIO0_0_DATA_OFST       0x4
 #define GPIO_DIR_OFST           0x400
@@ -516,7 +519,7 @@ static int EmmcInitParam()              // get "boot_updater" string in misc,the
 
 int misc_init_r(void)
 {
-    const char cmdBuf[] = "mmc read 0x0 0x80000000 0x800 0x4800; bootm 0x80000000";
+    const char cmdBuf[] = "mmc read 0x0 0x80000000 0x800 0x4800; go 0x80000000";
 
 #ifdef CONFIG_RANDOM_ETHADDR
 	random_init_r();
@@ -532,6 +535,18 @@ int misc_init_r(void)
     env_set("bootargs", g_bootArgsStr);
     env_set("bootcmd", cmdBuf);
 
+    /* auto update flag */
+    if (is_auto_update())
+        auto_update_flag = 1;
+    else
+        auto_update_flag = 0;
+
+    /* bare chip program flag */
+    if (is_bare_program())
+        bare_chip_program = 1;
+    else
+        bare_chip_program = 0;
+
 #ifdef CFG_MMU_HANDLEOK
 	dcache_stop();
 #endif
@@ -543,6 +558,13 @@ int misc_init_r(void)
 #endif
 
 #if (CONFIG_AUTO_UPDATE == 1)
+    int update_flag = -1;
+    if (auto_update_flag)
+        update_flag = do_auto_update();
+    if (bare_chip_program && !auto_update_flag)
+        save_bootdata_to_flash();
+    if (update_flag == 0)
+        do_reset(NULL, 0, 0, NULL);
 #endif
     return 0;
 }
