@@ -1028,7 +1028,6 @@ static void set_update_status(int status)
         printf("len is %d, sz is %lld invalid\n", len, sz);
         return;
     }
-    printf("pre - data.update_status %d\n", data.update_status);
     data.update_status = status;
     loff_t size;
     int ret = file_fat_write(path, (void *)&data, 0, len, &size);
@@ -1036,13 +1035,6 @@ static void set_update_status(int status)
         printf("write data to /update/metadata error\n");
         return;
     }
-    printf("%llu bytes written\n", size);
-    sz = file_fat_read(path, (void *)&data, len);
-    if (sz <= 0) {
-        printf("len is %d, sz is %lld invalid\n", len, sz);
-        return;
-    }
-    printf("new - data.update_status %d\n", data.update_status);
     return;
 }
 #else
