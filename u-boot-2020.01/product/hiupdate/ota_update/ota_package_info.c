@@ -82,6 +82,7 @@ static const char *get_ota_file_name(const char *addr)
 		{"kernel_A",        "kernel.bin"},
 		{"rootfs",          "rootfs.img"},
 		{"rootfs_ext4",     "rootfs_ext4.img"},
+		{"patch",           "patch.img"},
 		{"reserved",        " "},
 	};
 	int i;

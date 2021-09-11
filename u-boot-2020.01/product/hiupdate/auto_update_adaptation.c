@@ -1006,6 +1006,44 @@ write_op:
 bool g_is_ota;
 #endif /* CONFIG_AUTO_OTA_UPDATE */
 
+#ifdef CONFIG_AUTO_OTA_UPDATE
+typedef struct {
+    unsigned char update_mode;
+    unsigned char running_partition;
+    unsigned char update_partiton;
+    unsigned char running_status;
+    unsigned char ota_status;
+    unsigned char reboot_status;
+    unsigned char update_status;
+} UpdateMetaData;
+
+static void set_update_status(int status)
+{
+    printf("\nset update status:%d\n", status);
+    const char *path = "/update/metadata";
+    UpdateMetaData data = {0};
+    int len = sizeof(data);
+    loff_t sz = file_fat_read(path, (void *)&data, len);
+    if (sz <= 0) {
+        printf("len is %d, sz is %lld invalid\n", len, sz);
+        return;
+    }
+    data.update_status = status;
+    loff_t size;
+    int ret = file_fat_write(path, (void *)&data, 0, len, &size);
+    if (ret < 0) {
+        printf("write data to /update/metadata error\n");
+        return;
+    }
+    return;
+}
+#else
+static void set_update_status(int status)
+{
+    return;
+}
+#endif
+
 /*
  * If none of the update file(u-boot, kernel or rootfs) was found
  * in the medium, return -1;
@@ -1021,6 +1059,7 @@ static int update_to_flash(void)
 	int cnt;
 	int uboot_updated = 0;
 	char buf[NAME_MAX_LEN] = {0};
+	int update_status = 1;
 
 #ifdef CONFIG_AUTO_OTA_UPDATE
 	if (g_is_ota) {
@@ -1097,6 +1136,10 @@ static int update_to_flash(void)
                 printf("%s write success!\n", aufile[i]);
             }
 #ifdef CONFIG_AUTO_OTA_UPDATE
+            if (res) {
+                // record update status as failed
+                update_status = 0;
+            }
 			if (g_is_ota)
 				break;
 #endif /* CONFIG_AUTO_OTA_UPDATE */
@@ -1110,6 +1153,8 @@ static int update_to_flash(void)
 			cnt++;
 		} while (res < 0);
 	}
+	
+	set_update_status(update_status);
 
 	if (uboot_updated == 1) {
         printf("update success!\n");

@@ -22,7 +22,7 @@
 #define OTA_ROOT_DIR                    "/update"
 #define OTA_TAG_FILE                    "OTA.tag"
 #define OTA_PATH_LEN                    32
-#define OTA_MAX_COMPONENT_NUM           7
+#define OTA_MAX_COMPONENT_NUM           8
 
 int change_to_ota_path(const char *src, char *ota_path, unsigned int len);
 int get_ota_file_path(const char *addr, char *path, unsigned int len);
