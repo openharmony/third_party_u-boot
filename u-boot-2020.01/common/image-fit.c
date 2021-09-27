@@ -8,6 +8,8 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
+#define LOG_CATEGORY LOGC_BOOT
+
 #ifdef USE_HOSTCC
 #include "mkimage.h"
 #include <time.h>
@@ -1583,21 +1585,9 @@ static int fdt_check_no_at(const void *fit, int parent)
 	return 0;
 }
 
-/**
- * fit_check_format - sanity check FIT image format
- * @fit: pointer to the FIT format image header
- *
- * fit_check_format() runs a basic sanity FIT image verification.
- * Routine checks for mandatory properties, nodes, etc.
- *
- * returns:
- *     1, on success
- *     0, on failure
- */
-int fit_check_format(const void *fit)
+int fit_check_format(const void *fit, ulong size)
 {
 	int ret;
-	ulong size;
 
 	/* A FIT image must be a valid FDT */
 	ret = fdt_check_header(fit);
@@ -1613,7 +1603,8 @@ int fit_check_format(const void *fit)
 		 * This is not as secure, so we should consider a flag to
 		 * control this.
 		 */
-		size = fdt_totalsize(fit);
+		if (size == IMAGE_SIZE_INVAL)
+			size = fdt_totalsize(fit);
 		ret = fdt_check_full(fit, size);
 		if (ret)
 			ret = -EINVAL;
@@ -1640,28 +1631,27 @@ int fit_check_format(const void *fit)
 	}
 
 	/* mandatory / node 'description' property */
-	if (fdt_getprop(fit, 0, FIT_DESC_PROP, NULL) == NULL) {
+	if (!fdt_getprop(fit, 0, FIT_DESC_PROP, NULL)) {
 		debug("Wrong FIT format: no description\n");
-		return 0;
+		return -ENOMSG;
 	}
 
 	if (IMAGE_ENABLE_TIMESTAMP) {
 		/* mandatory / node 'timestamp' property */
-		if (fdt_getprop(fit, 0, FIT_TIMESTAMP_PROP, NULL) == NULL) {
+		if (!fdt_getprop(fit, 0, FIT_TIMESTAMP_PROP, NULL)) {
 			debug("Wrong FIT format: no timestamp\n");
-			return 0;
+			return -ENODATA;
 		}
 	}
 
 	/* mandatory subimages parent '/images' node */
 	if (fdt_path_offset(fit, FIT_IMAGES_PATH) < 0) {
 		debug("Wrong FIT format: no images parent node\n");
-		return 0;
+		return -ENOENT;
 	}
 
-	return 1;
+	return 0;
 }
-
 
 /**
  * fit_conf_find_compat
@@ -1992,7 +1982,7 @@ int fit_image_load(bootm_headers_t *images, ulong addr,
 	printf("## Loading %s from FIT Image at %08lx ...\n", prop_name, addr);
 
 	bootstage_mark(bootstage_id + BOOTSTAGE_SUB_FORMAT);
-	ret = fit_check_format(fit);
+	ret = fit_check_format(fit, IMAGE_SIZE_INVAL);
 	if (ret) {
 		printf("Bad FIT %s image format! (err=%d)\n", prop_name, ret);
 		if (CONFIG_IS_ENABLED(FIT_SIGNATURE) && ret == -EADDRNOTAVAIL)

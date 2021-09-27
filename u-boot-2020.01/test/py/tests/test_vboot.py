@@ -24,17 +24,24 @@ For configuration verification:
 Tests run with both SHA1 and SHA256 hashing.
 """
 
+import shutil
 import struct
 import pytest
 import u_boot_utils as util
 import vboot_forge
+import vboot_evil
 
 TESTDATA = [
-    ['sha1', '', False],
-    ['sha1', '-pss', False],
-    ['sha256', '', False],
-    ['sha256', '-pss', False],
-    ['sha256', '-pss', True],
+    ['sha1', '', None, False, True],
+    ['sha1', '', '-E -p 0x10000', False, False],
+    ['sha1', '-pss', None, False, False],
+    ['sha1', '-pss', '-E -p 0x10000', False, False],
+    ['sha256', '', None, False, False],
+    ['sha256', '', '-E -p 0x10000', False, False],
+    ['sha256', '-pss', None, False, False],
+    ['sha256', '-pss', '-E -p 0x10000', False, False],
+    ['sha256', '-pss', None, True, False],
+    ['sha256', '-pss', '-E -p 0x10000', True, True],
 ]
 
 @pytest.mark.boardspec('sandbox')
@@ -43,8 +50,10 @@ TESTDATA = [
 @pytest.mark.requiredtool('fdtget')
 @pytest.mark.requiredtool('fdtput')
 @pytest.mark.requiredtool('openssl')
-@pytest.mark.parametrize("sha_algo,padding,required", TESTDATA)
-def test_vboot(u_boot_console, sha_algo, padding, required):
+@pytest.mark.parametrize("sha_algo,padding,sign_options,required,full_test",
+                         TESTDATA)
+def test_vboot(u_boot_console, sha_algo, padding, sign_options, required,
+               full_test):
     """Test verified boot signing with mkimage and verification with 'bootm'.
 
     This works using sandbox only as it needs to update the device tree used
@@ -66,7 +75,7 @@ def test_vboot(u_boot_console, sha_algo, padding, required):
         util.run_and_log(cons, 'dtc %s %s%s -O dtb '
                          '-o %s%s' % (dtc_args, datadir, dts, tmpdir, dtb))
 
-    def run_bootm(sha_algo, test_type, expect_string, boots):
+    def run_bootm(sha_algo, test_type, expect_string, boots, fit=None):
         """Run a 'bootm' command U-Boot.
 
         This always starts a fresh U-Boot instance since the device tree may
@@ -79,11 +88,14 @@ def test_vboot(u_boot_console, sha_algo, padding, required):
                     use.
             boots: A boolean that is True if Linux should boot and False if
                     we are expected to not boot
+            fit: FIT filename to load and verify
         """
+        if not fit:
+            fit = '%stest.fit' % tmpdir
         cons.restart_uboot()
         with cons.log.section('Verified boot %s %s' % (sha_algo, test_type)):
             output = cons.run_command_list(
-                ['host load hostfs - 100 %stest.fit' % tmpdir,
+                ['host load hostfs - 100 %s' % fit,
                  'fdt addr 100',
                  'bootm 100'])
         assert expect_string in ''.join(output)
@@ -311,8 +323,13 @@ def test_vboot(u_boot_console, sha_algo, padding, required):
     create_rsa_pair('prod')
 
     # Create a number kernel image with zeroes
-    with open('%stest-kernel.bin' % tmpdir, 'w') as fd:
-        fd.write(500 * chr(0))
+    with open('%stest-kernel.bin' % tmpdir, 'wb') as fd:
+        fd.write(500 * b'\0')
+
+    # Create a second kernel image with ones
+    evil_kernel = '%stest-kernel1.bin' % tmpdir
+    with open(evil_kernel, 'wb') as fd:
+        fd.write(500 * b'\x01')
 
     try:
         # We need to use our own device tree file. Remember to restore it
