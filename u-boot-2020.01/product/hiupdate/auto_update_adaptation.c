@@ -1071,6 +1071,8 @@ static int update_to_flash(void)
 	if (g_is_ota) {
 		if (ota_package_verify(LOAD_ADDR, MAX_LOADSZ) != 0) {
 			debug("ota package verify fail\n");
+			g_update_status = 0;
+			set_update_status(g_update_status);
 			return -1;
 		}
 		debug("ota package verify ok\n");
