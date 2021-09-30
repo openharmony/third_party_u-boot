@@ -1063,9 +1063,16 @@ static int update_to_flash(void)
 	char buf[NAME_MAX_LEN] = {0};
 
 #ifdef CONFIG_AUTO_OTA_UPDATE
+	if (g_update_status == 0) {
+		printf("\nThe last upgrade failed, do not continue this upgrade.\n");
+		return -1;
+	}
+
 	if (g_is_ota) {
 		if (ota_package_verify(LOAD_ADDR, MAX_LOADSZ) != 0) {
 			debug("ota package verify fail\n");
+			g_update_status = 0;
+			set_update_status(g_update_status);
 			return -1;
 		}
 		debug("ota package verify ok\n");
