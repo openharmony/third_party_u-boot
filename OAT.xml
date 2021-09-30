@@ -31,9 +31,9 @@
                 <policyitem type="compatibility" name="X11" path=".*" desc="Process that runs independently, invoked by the X process."/>
                 <policyitem type="compatibility" name="zlib-acknowledgement" path=".*" desc="Process that runs independently, invoked by the X process."/>
                 <policyitem type="compatibility" name="Intel" path=".*" desc="Process that runs independently, invoked by the X process."/>
-				<policyitem type="compatibility" name="BEER-WARE" path=".*" desc="Process that runs independently, invoked by the X process."/>
-				<policyitem type="compatibility" name="ISC" path=".*" desc="Process that runs independently, invoked by the X process."/>
-				<policyitem type="compatibility" name="SPDX License Expression" path=".*" desc="Process that runs independently, invoked by the X process."/>
+		<policyitem type="compatibility" name="BEER-WARE" path=".*" desc="Process that runs independently, invoked by the X process."/>
+		<policyitem type="compatibility" name="ISC" path=".*" desc="Process that runs independently, invoked by the X process."/>
+		<policyitem type="compatibility" name="SPDX License Expression" path=".*" desc="Process that runs independently, invoked by the X process."/>
                 <!--policyitem type="license" name="LGPL" path="abc/.*" desc="Dynamically linked by module X"/-->
                 <!--policyitem type="copyright" name="xxx" path="abc/.*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc="Developed by X Company"/-->
             </policy>
@@ -43,19 +43,21 @@
                 <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
                 <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
                 <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
+		<filteritem type="filepath" name="u-boot-2020.01/drivers" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/tools" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/examples" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/scripts" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/doc" desc="opensource files"/>
             </filefilter>
             <filefilter name="defaultPolicyFilter" desc="Filters for compatibility，license header policies">
                 <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
                 <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
                 <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
-				<filteritem type="filepath" name="u-boot-2020.01/doc/README.coccinelle" desc="Temp files"/>
-				<filteritem type="filepath" name="u-boot-2020.01/drivers/i2c/omap24xx_i2c.c" desc="Temp files"/>
-				<filteritem type="filepath" name="u-boot-2020.01/net/nfs.c" desc="Temp files"/>
-				<filteritem type="filepath" name="u-boot-2020.01/Licenses/Exceptions" desc="Temp files"/>
-				<filteritem type="filepath" name="u-boot-2020.01/doc/README.rmobile" desc="Temp files"/>
-				<filteritem type="filepath" name="u-boot-2020.01/test/run" desc="Temp files"/>
-				<filteritem type="filepath" name="u-boot-2020.01/arch/arm/cpu/armv8/fsl-layerscape/doc/README.soc" desc="Temp files"/>
-				<filteritem type="filename" name="*.txt" desc="Temp files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/net/nfs.c" desc="Temp files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/Licenses/Exceptions" desc="Temp files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/test/run" desc="Temp files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/arch/arm/cpu/armv8/fsl-layerscape/doc/README.soc" desc="Temp files"/>
+		<filteritem type="filename" name="*.txt" desc="Temp files"/>
             </filefilter>
             <filefilter name="copyrightPolicyFilter" desc="Filters for copyright header policies">
                 <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
@@ -78,6 +80,13 @@
                 <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
             </filefilter>
             <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binary file policies">
+		<filteritem type="filename" name="*.o" desc="Temp files"/>
+		<filteritem type="filename" name="gzip|*.dts|*.S" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/drivers" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/tools" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/examples" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/scripts" desc="opensource files"/>
+		<filteritem type="filepath" name="u-boot-2020.01/doc" desc="opensource files"/>
                 <!--filteritem type="filename" name="*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
                 <!--filteritem type="filepath" name="abcdefg/.*.uvwxyz" desc="Describe the reason for filtering scan results"/-->
                 <!--filteritem type="filepath" name="projectroot/[a-zA-Z0-9]{20,}.sh" desc="Temp files"/-->
