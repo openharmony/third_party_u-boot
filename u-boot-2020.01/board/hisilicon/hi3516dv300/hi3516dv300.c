@@ -438,6 +438,7 @@ static int g_isRecovery = 0;
 #define ARG_SZ 1000
 #define MMC_LENGTH 7
 #define UPDATE_BOOT_LENGTH 12
+#define FLASH_BOOT_LENGTH 10
 #define MIN_BOOTARGS_LENGTH 10
 #define PARTITION_INFO_POS 1144
 #define PARTITION_INFO_MAX_LENGTH 256
@@ -465,22 +466,22 @@ static void ChangeBootArgs(void)            // get bootargs from emmc
     }
 }
 
-static int EmmcInitParam(void)              // get "boot_updater" string in misc,then set env
+int EmmcInitParam(void)              // get "boot_updater" string in misc,then set env
 {
     const char rebootHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
-        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 init=/init "
-        "root=/dev/mmcblk0p5 rootfstype=ext4 ro blkdevparts=";
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
+        "root=/dev/ram0 blkdevparts=";
     const char defaultRebootStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
-        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 init=/init root=/dev/mmcblk0p5 "
-        "rootfstype=ext4 ro blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
+        "root=/dev/ram0 blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
         "1M(misc),3307M(system),256M(vendor),-(userdata)";
     const char updaterHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M clk_ignore_unused "
         "androidboot.selinux=permissive skip_initramfs "
-        "rootdelay=10 init=/init root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=";
+        "rootdelay=10 hardware=Hi3516DV300 init=/init root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=";
     const char defaultUpdaterStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
-        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs "
-        "rootdelay=10 init=/init root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),"
-        "15M(kernel),20M(updater),1M(misc),3307M(system),256M(vendor),-(userdata)";
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
+        "root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
+        "1M(misc),3307M(system),256M(vendor),-(userdata)";
     char block2[EMMC_SECTOR_SIZE*EMMC_SECTOR_CNT];
     if (BlkDevRead(block2, MISC_LOCATION*(M_1/EMMC_SECTOR_SIZE), EMMC_SECTOR_CNT) < 0) {
         return -1;
@@ -494,7 +495,11 @@ static int EmmcInitParam(void)              // get "boot_updater" string in misc
     block2[PARTITION_INFO_POS] = block2[PARTITION_INFO_POS] == (char)-1 ? 0 : block2[PARTITION_INFO_POS];
     block2[PARTITION_INFO_POS + PARTITION_INFO_MAX_LENGTH] = 0;
 
-    g_isRecovery = memcmp(p->command, "boot_updater", UPDATE_BOOT_LENGTH) ? 0 : 1;
+    g_isRecovery = 0;
+    if ((memcmp(p->command, "boot_updater", UPDATE_BOOT_LENGTH) == 0)
+        || (memcmp(p->command, "boot_flash", FLASH_BOOT_LENGTH) == 0)) {
+        g_isRecovery = 1;
+    }
     unsigned int partitionStrLen = strlen(&block2[PARTITION_INFO_POS]);
 
     if (memcmp(&block2[PARTITION_INFO_POS], "mmcblk0", MMC_LENGTH)) {

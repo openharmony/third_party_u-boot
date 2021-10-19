@@ -1025,6 +1025,34 @@ int genimg_has_config(bootm_headers_t *images)
 	return 0;
 }
 
+extern int EmmcInitParam();
+
+static int fit_change_bootargs(ulong rd_data, ulong rd_len)
+{
+	int len = 0;
+	char *bootargs;
+	char *newbootargs;
+	char str[30];
+
+	sprintf(str, " initrd=0x%lx,0x%lx", rd_data , rd_len);
+	bootargs = env_get("bootargs");
+	if (bootargs)
+		len += strlen(bootargs);
+
+	newbootargs = malloc(len + sizeof(str));
+	if (!newbootargs) {
+		puts("Error: malloc in newbootargs failed!\n");
+		return -ENOMEM;
+	}
+
+	if (bootargs) {
+		strcpy(newbootargs, bootargs);
+		strcat(newbootargs, str);
+	}
+	env_set("bootargs", newbootargs);
+	return 0;
+}
+
 /**
  * boot_get_ramdisk - main ramdisk handling routine
  * @argc: command argument count
@@ -1176,6 +1204,11 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 			images->fit_hdr_rd = map_sysmem(rd_addr, 0);
 			images->fit_uname_rd = fit_uname_ramdisk;
 			images->fit_noffset_rd = rd_noffset;
+
+			if (!EmmcInitParam()){
+				if(fit_change_bootargs(rd_data, rd_len))
+					printf("Error additional bootargs fail!\n");
+				}
 			break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
