@@ -233,7 +233,10 @@ hi_void vo_set_disp_max_size(vo_hal_dev vo_dev, vo_intf_sync vo_out_mode)
             max_width = 7680;
             max_height = 4320;
             break;
-
+        case VO_OUTPUT_480x960_60:
+            max_width = 480;
+            max_height = 960;
+            break;
         default:
             max_width = 1920;
             max_height = 1080;
@@ -468,7 +471,7 @@ int start_gx(unsigned int layer, unsigned long addr, unsigned int strd, hi_vo_re
 
     hal_gfx_set_src_resolution(vo_layer, &disp_rect);
 
-    hal_layer_set_layer_data_fmt(vo_layer, HAL_INPUTFMT_ARGB_1555);
+    hal_layer_set_layer_data_fmt(vo_layer, HAL_INPUTFMT_RGB_888);
 
     hal_layer_enable_layer(vo_layer, HI_TRUE);
     hal_layer_set_reg_up(hal_gfx_layer);

@@ -938,9 +938,46 @@ static void mipi_tx_drv_hw_init(void)
     write_reg32(mipi_tx_crg_addr, 1 << 2, 0x1 << 2); /* set bit 2 */
 }
 
+static void reset_mipi_lcm()
+{
+    unsigned long mipi_tx_multip_gpio_addr;
+
+    // GPIO0_5 output
+    mipi_tx_multip_gpio_addr = (unsigned long)IO_ADDRESS(0x120D0400);
+    write_reg32(mipi_tx_multip_gpio_addr, 0x20, 0x20);
+    mdelay(10);
+
+    // data 0
+    mipi_tx_multip_gpio_addr = (unsigned long)IO_ADDRESS(0x120D03FC);
+    write_reg32(mipi_tx_multip_gpio_addr, 0, 0x0);
+    mdelay(50);
+
+    // data 1
+    mipi_tx_multip_gpio_addr = (unsigned long)IO_ADDRESS(0x120D03FC);
+    write_reg32(mipi_tx_multip_gpio_addr, 0x20, 0x20);
+    mdelay(120);
+}
+
+static void pwm_mipi_lcm()
+{
+    unsigned long mipi_tx_multip_gpio_addr;
+
+    // GPIO6_7 output
+    mipi_tx_multip_gpio_addr = (unsigned long)IO_ADDRESS(0x120D6400);
+    write_reg32(mipi_tx_multip_gpio_addr, 0x80, 0x80);
+    mdelay(10);
+
+    // GPIO6_7 data 1
+    mipi_tx_multip_gpio_addr = (unsigned long)IO_ADDRESS(0x120D63FC);
+    write_reg32(mipi_tx_multip_gpio_addr, 0x80, 0x80);
+    mdelay(120);
+}
+
 int mipi_tx_drv_init(void)
 {
     int ret;
+    pwm_mipi_lcm();
+    reset_mipi_lcm();
 
     ret = mipi_tx_drv_reg_init();
     if (ret < 0) {

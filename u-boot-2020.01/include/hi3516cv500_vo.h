@@ -96,6 +96,7 @@ typedef enum {
     VO_OUTPUT_800x600_50,            /* For LCD     at 50 Hz (24bit) */
     VO_OUTPUT_720x1280_60,           /* For MIPI DSI Tx 720 x1280 at 60 Hz */
     VO_OUTPUT_1080x1920_60,          /* For MIPI DSI Tx 1080x1920 at 60 Hz */
+    VO_OUTPUT_480x960_60,            /* For MIPI 480 x 960 at 60Hz  */
     VO_OUTPUT_7680x4320_30,          /* For HDMI2.0 at 30 Hz         */
     VO_OUTPUT_USER,                  /* User timing. */
 

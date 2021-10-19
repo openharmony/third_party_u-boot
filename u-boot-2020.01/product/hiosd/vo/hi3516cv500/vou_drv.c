@@ -143,6 +143,7 @@ hal_disp_syncinfo g_sync_timing[VO_OUTPUT_BUTT] = {
     { 0, 1, 1, 600,  23, 12, 800,  210, 46,   1,    1,   1,  1, 2,   1,  0, 0, 0 }, /* 800X600@60 24bit LCD */
     { 0, 1, 1, 1280, 24, 8,  720,  123, 99,   1,    1,   1,  1, 24,  4,  0, 0, 0 }, /* 720 x1280 at 60 hz */
     { 0, 1, 1, 1920, 36, 16, 1080, 28,  130,  1,    1,   1,  1, 24,  4,  0, 0, 0 }, /* 1080 x1920 at 60 hz */
+    { 0, 1, 1, 960,  16, 16, 480,  30,  20,   1,    1,   1,  1, 10,  2,  0, 0, 0 }, /* 480 x960 at 60 hz */
     { 0, 1, 1, 4320, 64, 16, 7680, 768, 552,  1,    1,   1,  1, 176, 20, 0, 0, 0 }, /* 7680x4320@30 */
     {}                                                                              /* user */
 };
@@ -571,6 +572,16 @@ hi_void vo_drv_set_dev_clk(vo_hal_dev vo_dev)
             refdiv = 2;
             postdiv1 = 2;
             postdiv2 = 1;
+
+            hdmiclk_div = 0x0;
+            break;
+        }
+        case VO_OUTPUT_480x960_60: {
+            fbdiv = 257;
+            frac = 0x9f559b;
+            refdiv = 4;
+            postdiv1 = 7;
+            postdiv2 = 7;
 
             hdmiclk_div = 0x0;
             break;

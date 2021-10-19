@@ -466,6 +466,31 @@ static void ChangeBootArgs(void)            // get bootargs from emmc
     }
 }
 
+#define MISC_HEAD_LEN 512
+#define MISC_ADDR_LEN 16
+#define RGB_FILE_MAX_SIZE 1024 * 2038
+int ReadMiscLogoBuffer(void)
+{
+    char blk[MISC_HEAD_LEN] = {0};
+    char addr[MISC_ADDR_LEN] = {0};
+    int addrOffset = (PARTITION_INFO_POS + PARTITION_INFO_MAX_LENGTH + MISC_HEAD_LEN - 1) / MISC_HEAD_LEN;
+    if (BlkDevRead(blk, MISC_LOCATION*(M_1/EMMC_SECTOR_SIZE) + addrOffset, 1) < 0) {
+        return -1;
+    }
+
+    unsigned int magicNum = 0;
+    unsigned int rgbSize = 0;
+    const unsigned int magic = 0XABCABCAB;
+    magicNum = *(unsigned int*) blk;
+    rgbSize = *(unsigned int*) (blk + 4); // offset 4 byte
+    if ((magicNum == magic) && (rgbSize > 0) && (rgbSize < RGB_FILE_MAX_SIZE)) {
+        env_set("flag", "1");
+        sprintf(addr, "0x%08X", (MISC_LOCATION * (M_1 / EMMC_SECTOR_SIZE) + addrOffset));
+        env_set("misc_addr", addr);
+    }
+    return 0;
+}
+
 int EmmcInitParam(void)              // get "boot_updater" string in misc,then set env
 {
     const char rebootHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
@@ -474,14 +499,14 @@ int EmmcInitParam(void)              // get "boot_updater" string in misc,then s
     const char defaultRebootStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
         "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
         "root=/dev/ram0 blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
-        "1M(misc),3307M(system),256M(vendor),-(userdata)";
+        "2M(misc),3307M(system),256M(vendor),-(userdata)";
     const char updaterHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M clk_ignore_unused "
         "androidboot.selinux=permissive skip_initramfs "
         "rootdelay=10 hardware=Hi3516DV300 init=/init root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=";
     const char defaultUpdaterStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
         "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
         "root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
-        "1M(misc),3307M(system),256M(vendor),-(userdata)";
+        "2M(misc),3307M(system),256M(vendor),-(userdata)";
     char block2[EMMC_SECTOR_SIZE*EMMC_SECTOR_CNT];
     if (BlkDevRead(block2, MISC_LOCATION*(M_1/EMMC_SECTOR_SIZE), EMMC_SECTOR_CNT) < 0) {
         return -1;
@@ -657,6 +682,9 @@ int misc_init_r(void)
     if (EmmcInitParam() == -1) {
         return 0;
     }
+
+    ReadMiscLogoBuffer();
+
     ChangeBootArgs();
 
     env_set("bootargs", g_bootArgsStr);

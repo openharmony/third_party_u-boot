@@ -20,6 +20,7 @@
 #include <linux/err.h>
 #include <u-boot/zlib.h>
 #include <mapmem.h>
+#include "hi3516cv500_vo.h"
 #if defined(CONFIG_OHOS_SEC_BOOT_SUPPORT)
 #include "../product/hisec/sec_boot.h"
 #endif
@@ -92,8 +93,38 @@ static int do_bootm_subcommand(cmd_tbl_t *cmdtp, int flag, int argc,
 /* bootm - boot application image from image in memory */
 /*******************************************************************/
 
+#define MISC_LOGO_VO_ADDR 0X85000008
+#define MISC_LOAD_LOGO_ADDR 0X85000000
+#define MISC_RGB_MAX_LEN 0xFEC
+#define MISC_SIGN_LEN 8
+#define lOGO_SIZE 480 * 960 * 3
+char g_tempMemory[lOGO_SIZE] = {0};
 int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+if (strcmp(env_get("flag"), "1") == 0) {
+    extern int start_vo(unsigned int dev, unsigned int type, unsigned int sync);
+    extern int stop_vo(unsigned int dev);
+    extern int mipi_tx_display(unsigned int vosync);
+    extern int start_gx(unsigned int layer, unsigned addr, unsigned int strd,
+    unsigned int x, unsigned int y, unsigned int w, unsigned int h);
+    extern int stop_gx(unsigned int layer);
+    extern int set_vobg(unsigned int dev, unsigned int rgb);
+
+    const char cmd[100] = {0};
+
+    sprintf(cmd, "mmc read 0x0 %x %s %x", MISC_LOAD_LOGO_ADDR, env_get("misc_addr"), MISC_RGB_MAX_LEN);
+    run_command(cmd, 0);
+    for (int i = 0; i < lOGO_SIZE; i++) {
+        g_tempMemory[i] = *(unsigned char*)(MISC_LOGO_VO_ADDR + i);
+    }
+    set_vobg(0, 0xFFFFFF);
+    /* mipi 16384 */
+    start_vo(0, 16384, VO_OUTPUT_480x960_60);
+    mipi_tx_display(VO_OUTPUT_480x960_60);
+    start_gx(0, (unsigned int)g_tempMemory, 1440, 0, 0, 480, 960);
+    printf("END!!!");
+}
+
 #if defined(CONFIG_OHOS_SEC_BOOT_SUPPORT)
     if (CONFIG_OHOS_SEC_BOOT_ENABLE) {
         int ret = check_security_boot(CONFIG_OHOS_X509_BIN_START_ADDR);

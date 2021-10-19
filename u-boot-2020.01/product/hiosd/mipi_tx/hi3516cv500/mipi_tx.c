@@ -27,9 +27,62 @@
 
 #define HIMEDIA_DYNAMIC_MINOR 255
 
+#define REGFLAG_DELAY               0XFFE
+#define REGFLAG_END_OF_TABLE        0xFFF // END OF REGISTERS MARKER
+#define DTYPE_DCS_WRITE             0x5 // 0x15 short write, 1 parameter
+#define DTYPE_DCS_WRITE1            0x15 // 0x23  short write, 2 parameter
+#define DTYPE_DCS_LWRITE            0x39 // 0x29 long write
+
 typedef struct {
     combo_dev_cfg_t dev_cfg;
 } mipi_tx_dev_ctx_t;
+
+struct LCM_setting_table {
+    unsigned cmd;
+    unsigned char count;
+    unsigned char para_list[100];
+};
+
+static struct LCM_setting_table lcm_initialization_setting[] = {
+    {DTYPE_DCS_LWRITE, 3, {0xF0, 0x5A, 0x5A}},
+    {DTYPE_DCS_LWRITE, 3, {0xF1, 0xA5, 0xA5}},
+
+    {DTYPE_DCS_LWRITE, 12, {0xB3, 0x03, 0x03, 0x03, 0x07, 0x05, 0x0D, 0x0F, 0x11, 0x13, 0x09, 0x0B}},
+    {DTYPE_DCS_LWRITE, 12, {0xB4, 0x03, 0x03, 0x03, 0x06, 0x04, 0x0C, 0x0E, 0x10, 0x12, 0x08, 0x0A}},
+    {DTYPE_DCS_LWRITE, 13, {0xB0, 0x54, 0x32, 0x23, 0x45, 0x44, 0x44, 0x44, 0x44, 0x60, 0x00, 0x60, 0x1C}},
+    {DTYPE_DCS_LWRITE, 9, {0xB1, 0x32, 0x84, 0x02, 0x87, 0x12, 0x00, 0x50, 0x1C}},
+    {DTYPE_DCS_LWRITE, 4, {0xB2, 0x73, 0x09, 0x08}},
+
+    {DTYPE_DCS_LWRITE, 4, {0xB6, 0x5C, 0x5C, 0x05}},
+    // {DTYPE_DCS_WRITE1, 2,  {0xC0, 0x11}}, //BIST color bar and color test disable
+
+    {DTYPE_DCS_LWRITE, 6,  {0xB8, 0x23, 0x41, 0x32, 0x30, 0x03}},
+    {DTYPE_DCS_LWRITE, 11, {0xBC, 0xD2, 0x0E, 0x63, 0x63, 0x5A, 0x32, 0x22, 0x14, 0x22, 0x03}},
+    {DTYPE_DCS_WRITE1, 2, {0xB7, 0x41}},
+    {DTYPE_DCS_LWRITE, 7, {0xC1, 0x0C, 0x10, 0x04, 0x0C, 0x10, 0x04}},
+    {DTYPE_DCS_LWRITE, 3, {0xC2, 0x10, 0xE0}},
+    {DTYPE_DCS_LWRITE, 3, {0xC3, 0x22, 0x11}},
+
+    {DTYPE_DCS_LWRITE, 3, {0xD0, 0x07, 0xFF}},
+    {DTYPE_DCS_LWRITE, 5, {0xD2, 0x63,0x0B,0x08,0x88}}, //ESD
+
+    {DTYPE_DCS_LWRITE, 8, {0xC6, 0x08, 0x15, 0xFF, 0x10, 0x16, 0x80, 0x60}},
+    {DTYPE_DCS_WRITE1, 2, {0xC7, 0x04}},
+
+    {DTYPE_DCS_WRITE1, 2, {0x36, 0x08}}, // add tsl 2020.08.31; Hi3516dv300 output is bgr, so set mipi bgr
+
+    {DTYPE_DCS_LWRITE, 39, {0xC8, 0x7C, 0x50, 0x3B, 0x2C, 0x25, 0x16, 0x1C, \
+                            0x08, 0x27, 0x2B, 0x2F, 0x52, 0x43, 0x4C, 0x40, \
+                            0x3D, 0x30, 0x1E, 0x06, 0x7C, 0x50, 0x3B, 0x2C, \
+                            0x25, 0x16, 0x1C, 0x08, 0x27, 0x2B, 0x2F, 0x52, \
+                            0x43, 0x4C, 0x40, 0x3D, 0x30, 0x1E, 0x06}}, // G2.0
+
+    {DTYPE_DCS_WRITE, 1, {0x11}}, // exit sleep
+    {REGFLAG_DELAY, 0, {}},
+    {DTYPE_DCS_WRITE, 1, {0x29}}, // display on
+    {REGFLAG_DELAY,0,{}},
+    {REGFLAG_END_OF_TABLE, 0x00,{}}
+};
 
 mipi_tx_dev_ctx_t g_mipi_tx_dev_ctx;
 
@@ -54,6 +107,28 @@ static combo_dev_cfg_t g_mipi_tx_720x576_50_config = {
     },
     .phy_data_rate = 459,
     .pixel_clk = 27000,
+};
+
+/* 480x960_60 sync config */
+static combo_dev_cfg_t g_mipi_tx_480x960_60_config = {
+    .devno = 0,
+    .lane_id = { 0, 1, -1, -1 },
+    .output_mode = OUTPUT_MODE_DSI_VIDEO, //OUTPUT_MODE_DSI_CMD,
+    .output_format = OUT_FORMAT_RGB_24_BIT,
+    .video_mode = BURST_MODE,
+    .sync_info = {
+        .vid_pkt_size = 480, // hact
+        .vid_hsa_pixels = 10, // hsa
+        .vid_hbp_pixels = 20, // hbp
+        .vid_hline_pixels = 530, // hact(480) + hsa(10) + hbp(20) + hfp(20)
+        .vid_vsa_lines = 2, // vsa
+        .vid_vbp_lines = 14, // vbp
+        .vid_vfp_lines = 16, // vfp
+        .vid_active_lines = 960, // vact
+        .edpi_cmd_size = 0,
+    },
+    .phy_data_rate = 379,
+    .pixel_clk = 31546,
 };
 
 /* 1280x720_60 sync config */
@@ -330,6 +405,56 @@ void mipi_tx_module_exit(void)
     printf("unload mipi_tx driver ok!\n");
 }
 
+static void push_table(struct LCM_setting_table *table, unsigned int count, unsigned char force_update)
+{
+    unsigned int i;
+    int s32Ret;
+
+    for(i = 0; i < count; i++) {
+        unsigned cmd;
+        cmd = table[i].cmd;
+        cmd_info_t cmd_info = {0};
+
+        switch (cmd) {
+            case REGFLAG_DELAY :
+                 mdelay(120);
+                break;
+            case REGFLAG_END_OF_TABLE :
+                break;
+            default:
+                if (cmd == DTYPE_DCS_LWRITE) {
+                    cmd_info.devno = 0;
+                    cmd_info.cmd_size = table[i].count;
+                    cmd_info.data_type = table[i].cmd;
+                    cmd_info.cmd = &table[i].para_list[0];
+                    s32Ret = mipi_tx_ioctl(HI_MIPI_TX_SET_CMD, (unsigned long)(&cmd_info));
+                    mdelay(1);
+                } else if (cmd == DTYPE_DCS_WRITE1) {
+                    cmd_info.devno = 0;
+                    cmd_info.cmd_size |= table[i].para_list[1] << 8;
+                    cmd_info.cmd_size |= table[i].para_list[0];
+                    cmd_info.data_type = table[i].cmd;
+                    cmd_info.cmd = NULL;
+                    s32Ret = mipi_tx_ioctl(HI_MIPI_TX_SET_CMD, (unsigned long)(&cmd_info));
+                    mdelay(1);
+                } else if (cmd == DTYPE_DCS_WRITE) {
+                    cmd_info.devno = 0;
+                    cmd_info.cmd_size = table[i].para_list[0];
+                    cmd_info.data_type = table[i].cmd;
+                    cmd_info.cmd = NULL;
+                    s32Ret = mipi_tx_ioctl(HI_MIPI_TX_SET_CMD, (unsigned long)(&cmd_info));
+                    mdelay(1);
+                }
+        }
+    }
+}
+
+static void PLE_PRIVATE_VO_InitScreen480x960(void)
+{
+    printf("Send mipi cmd \n");
+    push_table(lcm_initialization_setting, sizeof(lcm_initialization_setting) / sizeof(struct LCM_setting_table), 1);
+}
+
 int mipi_tx_display(unsigned int vosync)
 {
     int ret;
@@ -339,6 +464,9 @@ int mipi_tx_display(unsigned int vosync)
     mipi_tx_module_init();
 
     switch (vosync) {
+        case VO_OUTPUT_480x960_60:
+            mipi_tx_config = &g_mipi_tx_480x960_60_config;
+            break;
         case VO_OUTPUT_576P50:
             mipi_tx_config = &g_mipi_tx_720x576_50_config;
             break;
@@ -374,6 +502,8 @@ int mipi_tx_display(unsigned int vosync)
 
     /* step 2 : init display device (do it yourself ). */
     udelay(10000); /* delay 10000 us for the stable signal */
+    PLE_PRIVATE_VO_InitScreen480x960();
+    udelay(10000);
 
     /* step 3 : enable mipi_tx controller. */
     ret = mipi_tx_ioctl(HI_MIPI_TX_ENABLE, (unsigned long)0);
