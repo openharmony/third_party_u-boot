@@ -958,7 +958,7 @@ static void reset_mipi_lcm()
     mdelay(120);
 }
 
-static void pwm_mipi_lcm()
+void pwm_mipi_lcm()
 {
     unsigned long mipi_tx_multip_gpio_addr;
 
@@ -976,7 +976,6 @@ static void pwm_mipi_lcm()
 int mipi_tx_drv_init(void)
 {
     int ret;
-    pwm_mipi_lcm();
     reset_mipi_lcm();
 
     ret = mipi_tx_drv_reg_init();
