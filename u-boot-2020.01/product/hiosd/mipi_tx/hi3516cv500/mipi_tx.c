@@ -33,6 +33,8 @@
 #define DTYPE_DCS_WRITE1            0x15 // 0x23  short write, 2 parameter
 #define DTYPE_DCS_LWRITE            0x39 // 0x29 long write
 
+extern void pwm_mipi_lcm();
+
 typedef struct {
     combo_dev_cfg_t dev_cfg;
 } mipi_tx_dev_ctx_t;
@@ -502,6 +504,7 @@ int mipi_tx_display(unsigned int vosync)
     udelay(10000); /* delay 10000 us for the stable signal */
     PLE_PRIVATE_VO_InitScreen480x960();
     udelay(10000);
+    pwm_mipi_lcm();
 
     /* step 3 : enable mipi_tx controller. */
     ret = mipi_tx_ioctl(HI_MIPI_TX_ENABLE, (unsigned long)0);
