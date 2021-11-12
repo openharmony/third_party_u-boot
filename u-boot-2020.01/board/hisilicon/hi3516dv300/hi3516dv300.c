@@ -494,17 +494,21 @@ int ReadMiscLogoBuffer(void)
 int EmmcInitParam(void)              // get "boot_updater" string in misc,then set env
 {
     const char rebootHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
-        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 "
+        "default_boot_device=soc/10100000.himci.eMMC init=/init "
         "root=/dev/ram0 blkdevparts=";
     const char defaultRebootStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
-        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 "
+        "default_boot_device=soc/10100000.himci.eMMC init=/init "
         "root=/dev/ram0 blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
         "2M(misc),3307M(system),256M(vendor),-(userdata)";
     const char updaterHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M clk_ignore_unused "
         "androidboot.selinux=permissive skip_initramfs "
-        "rootdelay=10 hardware=Hi3516DV300 init=/init root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=";
+        "rootdelay=10 hardware=Hi3516DV300 default_boot_device=soc/10100000.himci.eMMC init=/init root=/dev/mmcblk0p3 "
+        "rootfstype=ext4 rw blkdevparts=";
     const char defaultUpdaterStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
-        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 init=/init "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 "
+        "default_boot_device=soc/10100000.himci.eMMC init=/init "
         "root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
         "2M(misc),3307M(system),256M(vendor),-(userdata)";
     char block2[EMMC_SECTOR_SIZE*EMMC_SECTOR_CNT];
