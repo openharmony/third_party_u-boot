@@ -504,12 +504,12 @@ int EmmcInitParam(void)              // get "boot_updater" string in misc,then s
         "2M(misc),3307M(system),256M(vendor),-(userdata)";
     const char updaterHead[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M clk_ignore_unused "
         "androidboot.selinux=permissive skip_initramfs "
-        "rootdelay=10 hardware=Hi3516DV300 default_boot_device=soc/10100000.himci.eMMC init=/init root=/dev/mmcblk0p3 "
-        "rootfstype=ext4 rw blkdevparts=";
+        "rootdelay=10 hardware=Hi3516DV300 default_boot_device=soc/10100000.himci.eMMC init=/init root=/dev/ram0 "
+        "blkdevparts=";
     const char defaultUpdaterStr[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
         "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 "
         "default_boot_device=soc/10100000.himci.eMMC init=/init "
-        "root=/dev/mmcblk0p3 rootfstype=ext4 rw blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
+        "root=/dev/ram0 blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
         "2M(misc),3307M(system),256M(vendor),-(userdata)";
     char block2[EMMC_SECTOR_SIZE*EMMC_SECTOR_CNT];
     if (BlkDevRead(block2, MISC_LOCATION*(M_1/EMMC_SECTOR_SIZE), EMMC_SECTOR_CNT) < 0) {
@@ -691,8 +691,14 @@ int misc_init_r(void)
 
     ChangeBootArgs();
 
+    // 0x80000000: boot img load addr; 0x84000000: updater img load addr
+    const char updater_cmdBuf[] = "mmc read 0x0 0x80000000 0x800 0x4800; mmc read 0x0 0x84000000 0x8000 0xB000; "
+        "bootm 0x80000000";
     env_set("bootargs", g_bootArgsStr);
     env_set("bootcmd", cmdBuf);
+    if (g_isRecovery) {
+        env_set("bootcmd", updater_cmdBuf);
+    }
 
     /* auto update flag */
     if (is_auto_update())

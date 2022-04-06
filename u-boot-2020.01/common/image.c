@@ -1205,7 +1205,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 			images->fit_uname_rd = fit_uname_ramdisk;
 			images->fit_noffset_rd = rd_noffset;
 
-			if (!EmmcInitParam()){
+			if (EmmcInitParam() >= 0){
 				if(fit_change_bootargs(rd_data, rd_len))
 					printf("Error additional bootargs fail!\n");
 				}
