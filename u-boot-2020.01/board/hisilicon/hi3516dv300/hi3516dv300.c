@@ -37,6 +37,7 @@
 #endif /* CONFIG_AUTO_OTA_UPDATE */
 #include <env.h>
 #include <string.h>
+#define INDEPENDENT_RAMDISK_PARTITION
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
@@ -689,13 +690,30 @@ int misc_init_r(void)
 
     ReadMiscLogoBuffer();
 
+#ifdef INDEPENDENT_RAMDISK_PARTITION
+    const char bootargs_with_ramdisk[] = "mem=640M console=ttyAMA0,115200 mmz=anonymous,0,0xA8000000,384M "
+        "clk_ignore_unused androidboot.selinux=permissive skip_initramfs rootdelay=10 hardware=Hi3516DV300 "
+        "default_boot_device=soc/10100000.himci.eMMC init=/init "
+        "root=/dev/ram0 blkdevparts=mmcblk0:1M(boot),15M(kernel),20M(updater),"
+        "2M(misc),4M(ramdisk),3303M(system),256M(vendor),50M(sys_prod),50M(chip_prod),-(userdata) initrd=0x84000000,0xA24000";
+    const char bootcmd_with_ramdisk[] = "mmc read 0x0 0x80000000 0x800 0x4800; "
+        "mmc read 0x0 0x84000000 0x13000 0x2000; "
+        "bootm 0x80000000 0x84000000:0xA24000";
+
+    memset(g_bootArgsStr, 0, ARG_SZ);
+    memcpy(g_bootArgsStr, bootargs_with_ramdisk, strlen(bootargs_with_ramdisk));
+    env_set("bootcmd", bootcmd_with_ramdisk);
+#endif
+
     ChangeBootArgs();
 
     // 0x80000000: boot img load addr; 0x84000000: updater img load addr
     const char updater_cmdBuf[] = "mmc read 0x0 0x80000000 0x800 0x4800; mmc read 0x0 0x84000000 0x8000 0xB000; "
         "bootm 0x80000000 0x84000000";
     env_set("bootargs", g_bootArgsStr);
+#ifndef INDEPENDENT_RAMDISK_PARTITION
     env_set("bootcmd", cmdBuf);
+#endif
     if (g_isRecovery) {
         env_set("bootcmd", updater_cmdBuf);
     }
